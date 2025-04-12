@@ -52,6 +52,17 @@ const Answer: FC<AnswerProps> = ({
   noChatInput,
   switchSibling,
 }) => {
+  console.log('item===', item);
+  console.log('question===', question);
+  console.log('index===', index);
+  console.log('config===', config);
+  console.log('answerIcon===', answerIcon);
+  console.log('responding===', responding);
+  console.log('showPromptLog===', showPromptLog);
+  console.log('chatAnswerContainerInner===', chatAnswerContainerInner);
+  console.log('hideProcessDetail===', hideProcessDetail);
+  console.log('appData===', appData);
+  console.log('noChatInput===', noChatInput);
   const { t } = useTranslation()
   const {
     content,

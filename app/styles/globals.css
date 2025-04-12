@@ -683,5 +683,6 @@ button:focus-within {
 @import "../components/base/button/index.css";
 @import "../components/base/action-button/index.css";
 @import "../components/base/modal/index.css";
+@import "../components/base/description/index.css";
 
 @tailwind utilities;

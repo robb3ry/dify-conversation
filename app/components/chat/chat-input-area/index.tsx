@@ -66,7 +66,7 @@ const ChatInputArea = ({
     handleTextareaResize,
     isMultipleLine,
   } = useTextAreaHeight()
-  const [query, setQuery] = useState('')
+  const [query, setQuery] = useState('帮我提取要素') // 暂时写死
   const [showVoiceInput, setShowVoiceInput] = useState(false)
   const filesStore = useFileStore()
   const {

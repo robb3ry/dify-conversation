@@ -1,6 +1,8 @@
 import type { AnnotationReplyConfig, ChatPromptConfig, CompletionPromptConfig, DatasetConfigs, PromptMode } from '@/models/debug'
 import type { CollectionType } from '@/app/components/tools/types'
 import type { LanguagesSupported } from '@/i18n/language'
+import type { Locale } from '@/i18n'
+
 export type Tag = {
   id: string
   name: string
@@ -382,6 +384,14 @@ export type AppTemplate = {
   mode: AppMode
   /** Model */
   model_config: ModelConfig
+}
+
+export type AppInfo = {
+  title: string
+  description: string
+  default_language: Locale
+  copyright?: string
+  privacy_policy?: string
 }
 
 export enum Resolution {
