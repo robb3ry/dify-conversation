@@ -20,8 +20,9 @@ const BasicContent: FC<BasicContentProps> = ({
     return <Markdown content={annotation?.logAnnotation.content || ''} />
   const parseContent = JSON.parse(content);
   const isStrContent = typeof parseContent === 'string'; // 另外还要加标识
+  const isGetInfoFailed = Object.prototype.toString.call(parseContent) === '[object Object]' && parseContent.__is_success === 0;
   return (
-    isStrContent? (<Markdown
+    (isStrContent || isGetInfoFailed)? (<Markdown
       className={cn(
         item.isError && '!text-[#F04438]',
       )}

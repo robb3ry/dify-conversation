@@ -1,3 +1,11 @@
 .ant-descriptions td{
     width: 100%!important;
 }
+.markdown-body table{
+    margin-bottom: 0!important;
+    border-right: 1px solid rgba(5,5,5,0.06);
+}
+
+:where(.css-dev-only-do-not-override-1d4w9r2).ant-descriptions.ant-descriptions-bordered >.ant-descriptions-view{
+    border: 0;
+}
