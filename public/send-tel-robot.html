@@ -1,0 +1,904 @@
+<!DOCTYPE html><html lang="zh-CN"><head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>发报智能助手</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#5D5CDE',
+                        secondary: '#2D5599',
+                        government: {
+                            blue: '#2E5288',
+                            red: '#C12C1F',
+                            light: '#F5F7FA',
+                            dark: '#1C2D41',
+                            gray: '#5A6B81'
+                        }
+                    }
+                }
+            },
+            darkMode: 'class'
+        }
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap');
+        
+        body {
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+        
+        .loading-dot {
+            animation: loading 1.4s infinite ease-in-out both;
+        }
+        
+        .loading-dot:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+        
+        .loading-dot:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+        
+        @keyframes loading {
+            0%, 80%, 100% {
+                transform: scale(0);
+            }
+            40% {
+                transform: scale(1);
+            }
+        }
+        
+        .file-preview {
+            max-height: 0;
+            transition: max-height 0.3s ease-out;
+            overflow: hidden;
+        }
+        
+        .file-preview.show {
+            max-height: 500px;
+            transition: max-height 0.5s ease-in;
+        }
+        
+        /* Dark mode styles */
+        .dark body {
+            background-color: #181818;
+            color: #e0e0e0;
+        }
+        
+        .dark .bg-white {
+            background-color: #242424;
+        }
+        
+        .dark .border-gray-200 {
+            border-color: #444;
+        }
+        
+        .dark .text-gray-700 {
+            color: #e0e0e0;
+        }
+        
+        .dark .shadow-md {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        }
+        
+        .dark .bg-gray-50 {
+            background-color: #333;
+        }
+        
+        .dark .bg-gray-100 {
+            background-color: #2a2a2a;
+        }
+        
+        .dark .text-gray-500 {
+            color: #aaa;
+        }
+        
+        .dark .bg-blue-50 {
+            background-color: rgba(30, 58, 138, 0.15);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <!-- 检测暗黑模式 -->
+    <script>
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.classList.add('dark');
+        }
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            if (event.matches) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+        });
+    </script>
+
+    <div class="container mx-auto px-4 py-6 flex flex-col md:flex-row gap-4 min-h-screen">
+        <!-- 左侧主区域 -->
+        <div class="w-full md:w-3/5 flex flex-col h-full">
+            <!-- 欢迎信息 -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-6 mb-4">
+                <div class="flex items-center mb-4">
+                    <div class="w-10 h-10 rounded-full bg-government-blue flex items-center justify-center text-white mr-4">
+                        <i class="fas fa-paper-plane"></i>
+                    </div>
+                    <h1 class="text-2xl font-bold text-government-blue dark:text-blue-300">发报智能助手</h1>
+                </div>
+                <p class="text-gray-700 dark:text-gray-300">
+                    Hi，我是发报智能助手，可以解析文件、图形文件中的电报要素信息，自动帮您准备好发报前置工作，帮助您快速完成电报登记、发送操作。
+                </p>
+            </div>
+
+            <!-- 对话区域 -->
+            <div id="conversation" class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-4 flex-grow overflow-y-auto min-h-[300px] max-h-[60vh]">
+                <!-- 对话内容将在这里动态生成 -->
+            </div>
+
+            <!-- 文件上传和输入区域 -->
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 relative">
+                <!-- 上传的文件预览区域 -->
+                <div id="uploadedFiles" class="w-full mb-3 hidden">
+                    <!-- 上传的文件将在这里显示 -->
+                </div>
+                
+                <div class="flex items-center border border-gray-300 dark:border-gray-600 rounded-lg">
+                    <div class="relative">
+                        <button id="uploadButton" class="p-3 text-gray-500 hover:text-primary dark:text-gray-400 dark:hover:text-blue-300 focus:outline-none">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                        <!-- 上传选项菜单 -->
+                        <div id="uploadMenu" class="hidden absolute bottom-full left-0 mb-2 bg-white dark:bg-gray-700 shadow-lg rounded-lg w-48 z-10">
+                            <ul class="py-2">
+                                <li class="upload-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer flex items-center" data-option="file">
+                                    <i class="fas fa-file-alt mr-2 text-government-blue dark:text-blue-300"></i>
+                                    <span>上传文件</span>
+                                </li>
+                                <li class="upload-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer flex items-center" data-option="image">
+                                    <i class="fas fa-image mr-2 text-government-blue dark:text-blue-300"></i>
+                                    <span>上传图片</span>
+                                </li>
+                                <li class="upload-option px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer flex items-center" data-option="scan">
+                                    <i class="fas fa-qrcode mr-2 text-government-blue dark:text-blue-300"></i>
+                                    <span>扫描文件</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <input id="messageInput" type="text" placeholder="请输入消息或上传文件..." class="flex-grow py-3 px-4 text-base focus:outline-none dark:bg-gray-800 dark:text-gray-200">
+                    <button id="sendButton" class="bg-government-blue hover:bg-blue-700 text-white font-medium py-3 px-6 rounded-r-lg focus:outline-none transition-colors duration-200">
+                        发送
+                    </button>
+                </div>
+                <!-- 文件输入 (隐藏) -->
+                <input type="file" id="fileInput" class="hidden" multiple="">
+            </div>
+        </div>
+
+        <!-- 右侧预览区域 -->
+        <div id="previewPanel" class="w-full md:w-2/5 hidden md:block">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 h-full">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-lg font-semibold text-government-blue dark:text-blue-300">文件预览</h2>
+                    <button id="closePreview" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div id="previewContent" class="h-[calc(100%-2rem)] overflow-auto">
+                    <div class="flex items-center justify-center h-full text-gray-500 dark:text-gray-400">
+                        <p>选择文件后在此处预览内容</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 扫描组件模态框 -->
+    <div id="scanModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-3xl p-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold text-government-blue dark:text-blue-300">扫描文件</h2>
+                <button id="closeScanModal" class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
+                    <i class="fas fa-times text-lg"></i>
+                </button>
+            </div>
+            <div class="mb-4">
+                <div class="bg-gray-100 dark:bg-gray-700 rounded-lg p-6 flex flex-col items-center justify-center" style="height: 400px;">
+                    <i class="fas fa-camera text-6xl text-gray-400 dark:text-gray-500 mb-4"></i>
+                    <p class="text-gray-500 dark:text-gray-400 text-center mb-4">请将文件放置于可视区域内</p>
+                    <button id="captureButton" class="bg-government-blue hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg focus:outline-none transition-colors duration-200">
+                        <i class="fas fa-camera mr-2"></i> 开始扫描
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-end">
+                <button id="cancelScan" class="text-gray-700 dark:text-gray-300 mr-4 py-2 px-4 rounded">取消</button>
+                <button id="confirmScan" class="bg-government-blue hover:bg-blue-700 text-white font-medium py-2 px-6 rounded-lg focus:outline-none transition-colors duration-200 disabled:opacity-50" disabled="">
+                    确认使用
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 核心元素
+            const conversation = document.getElementById('conversation');
+            const uploadButton = document.getElementById('uploadButton');
+            const uploadMenu = document.getElementById('uploadMenu');
+            const uploadOptions = document.querySelectorAll('.upload-option');
+            const fileInput = document.getElementById('fileInput');
+            const uploadedFiles = document.getElementById('uploadedFiles');
+            const messageInput = document.getElementById('messageInput');
+            const sendButton = document.getElementById('sendButton');
+            const previewPanel = document.getElementById('previewPanel');
+            const previewContent = document.getElementById('previewContent');
+            const closePreview = document.getElementById('closePreview');
+            
+            // 扫描模态框
+            const scanModal = document.getElementById('scanModal');
+            const closeScanModal = document.getElementById('closeScanModal');
+            const captureButton = document.getElementById('captureButton');
+            const cancelScan = document.getElementById('cancelScan');
+            const confirmScan = document.getElementById('confirmScan');
+            
+            // 上传菜单显示/隐藏
+            uploadButton.addEventListener('click', function() {
+                uploadMenu.classList.toggle('hidden');
+            });
+            
+            // 点击其他地方隐藏上传菜单
+            document.addEventListener('click', function(e) {
+                if (!uploadButton.contains(e.target) && !uploadMenu.contains(e.target)) {
+                    uploadMenu.classList.add('hidden');
+                }
+            });
+            
+            // 处理上传选项点击
+            uploadOptions.forEach(option => {
+                option.addEventListener('click', function() {
+                    const optionType = this.dataset.option;
+                    uploadMenu.classList.add('hidden');
+                    
+                    if (optionType === 'scan') {
+                        scanModal.classList.remove('hidden');
+                    } else {
+                        fileInput.accept = optionType === 'image' ? 'image/*' : '.doc,.docx,.pdf,.tiff,.ofd';
+                        fileInput.click();
+                    }
+                });
+            });
+            
+            // 处理文件选择
+            fileInput.addEventListener('change', function(e) {
+                if (this.files.length > 0) {
+                    displayUploadedFiles(this.files);
+                }
+            });
+            
+            // 显示上传的文件
+            function displayUploadedFiles(files) {
+                uploadedFiles.innerHTML = '';
+                uploadedFiles.classList.remove('hidden');
+                
+                const filesList = document.createElement('div');
+                filesList.className = 'flex flex-wrap gap-2';
+                
+                Array.from(files).forEach((file, index) => {
+                    const fileItem = document.createElement('div');
+                    fileItem.className = 'flex items-center p-2 bg-gray-100 dark:bg-gray-700 rounded';
+                    
+                    // 文件图标
+                    const icon = document.createElement('i');
+                    if (file.type.startsWith('image/')) {
+                        icon.className = 'fas fa-image text-blue-500 mr-2';
+                    } else {
+                        icon.className = 'fas fa-file-alt text-blue-500 mr-2';
+                    }
+                    
+                    // 文件名称
+                    const fileName = document.createElement('span');
+                    fileName.className = 'text-sm truncate max-w-[150px]';
+                    fileName.textContent = file.name;
+                    
+                    // 预览按钮
+                    const previewBtn = document.createElement('button');
+                    previewBtn.className = 'ml-2 text-xs text-primary dark:text-blue-300 hover:underline';
+                    previewBtn.textContent = '预览';
+                    previewBtn.addEventListener('click', () => {
+                        showPreview(file);
+                    });
+                    
+                    // 删除按钮
+                    const removeBtn = document.createElement('button');
+                    removeBtn.className = 'ml-2 text-red-500 hover:text-red-700';
+                    removeBtn.innerHTML = '<i class="fas fa-times"></i>';
+                    removeBtn.addEventListener('click', () => {
+                        fileItem.remove();
+                        if (filesList.children.length === 0) {
+                            uploadedFiles.classList.add('hidden');
+                        }
+                    });
+                    
+                    fileItem.appendChild(icon);
+                    fileItem.appendChild(fileName);
+                    fileItem.appendChild(previewBtn);
+                    fileItem.appendChild(removeBtn);
+                    filesList.appendChild(fileItem);
+                });
+                
+                uploadedFiles.appendChild(filesList);
+            }
+            
+            // 显示文件预览
+            function showPreview(file) {
+                // 在小屏幕上显示预览面板
+                previewPanel.classList.remove('hidden');
+                
+                previewContent.innerHTML = '';
+                
+                if (file.type.startsWith('image/')) {
+                    const img = document.createElement('img');
+                    img.className = 'max-w-full h-auto';
+                    img.src = URL.createObjectURL(file);
+                    previewContent.appendChild(img);
+                } else {
+                    // 简单的非图片文件预览
+                    const preview = document.createElement('div');
+                    preview.className = 'p-4 border border-gray-200 dark:border-gray-700 rounded';
+                    preview.innerHTML = `
+                        <div class="flex items-center justify-center mb-4">
+                            <i class="fas fa-file-alt text-4xl text-gray-400"></i>
+                        </div>
+                        <p class="text-center text-gray-600 dark:text-gray-400">${file.name}</p>
+                        <p class="text-center text-gray-500 dark:text-gray-500 text-sm mt-2">文件大小: ${formatFileSize(file.size)}</p>
+                        <p class="text-center text-gray-500 dark:text-gray-500 text-sm mt-1">文件类型: ${file.type || '未知'}</p>
+                        <p class="text-center mt-4 text-sm text-gray-600 dark:text-gray-400">此文件类型需要解析后查看内容</p>
+                    `;
+                    previewContent.appendChild(preview);
+                }
+            }
+            
+            // 格式化文件大小
+            function formatFileSize(bytes) {
+                if (bytes === 0) return '0 Bytes';
+                const k = 1024;
+                const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+                const i = Math.floor(Math.log(bytes) / Math.log(k));
+                return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+            }
+            
+            // 关闭预览面板
+            closePreview.addEventListener('click', function() {
+                previewPanel.classList.add('hidden', 'md:block');
+            });
+            
+            // 扫描模态框相关功能
+            closeScanModal.addEventListener('click', function() {
+                scanModal.classList.add('hidden');
+            });
+            
+            cancelScan.addEventListener('click', function() {
+                scanModal.classList.add('hidden');
+            });
+            
+            captureButton.addEventListener('click', function() {
+                this.disabled = true;
+                this.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> 扫描中...';
+                
+                // 模拟扫描过程
+                setTimeout(() => {
+                    this.innerHTML = '<i class="fas fa-check mr-2"></i> 扫描完成';
+                    confirmScan.disabled = false;
+                    
+                    // 模拟扫描结果
+                    const scanResult = document.createElement('div');
+                    scanResult.className = 'mt-4 p-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 text-green-700 dark:text-green-300 rounded';
+                    scanResult.innerHTML = '<i class="fas fa-check-circle mr-2"></i> 文件扫描成功';
+                    
+                    captureButton.parentElement.appendChild(scanResult);
+                }, 2000);
+            });
+            
+            confirmScan.addEventListener('click', function() {
+                scanModal.classList.add('hidden');
+                
+                // 创建一个模拟的扫描文件
+                const scanDateTime = new Date().toLocaleString();
+                const files = [{
+                    name: `扫描文件_${scanDateTime.replace(/[/:]/g, '-')}.pdf`,
+                    type: 'application/pdf',
+                    size: 1024 * 1024 * 2.3 // 模拟2.3MB大小
+                }];
+                
+                // 显示扫描文件
+                displayUploadedFiles(files);
+            });
+            
+            // 发送按钮点击事件
+            sendButton.addEventListener('click', sendMessage);
+            
+            // 输入框回车发送
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+            
+            // 发送消息逻辑
+            function sendMessage() {
+                const hasFiles = !uploadedFiles.classList.contains('hidden');
+                const messageText = messageInput.value.trim();
+                
+                if (!hasFiles && !messageText) {
+                    return; // 没有文件也没有消息，不执行任何操作
+                }
+                
+                // 清空输入框
+                messageInput.value = '';
+                
+                // 创建用户消息元素
+                const userMessage = document.createElement('div');
+                userMessage.className = 'flex justify-end mb-4';
+                
+                const userMessageContent = document.createElement('div');
+                userMessageContent.className = 'bg-government-blue text-white p-3 rounded-lg max-w-[80%]';
+                
+                if (hasFiles) {
+                    const filesText = document.createElement('div');
+                    filesText.className = 'mb-2 p-2 bg-blue-600 bg-opacity-50 rounded text-sm';
+                    
+                    const fileCount = uploadedFiles.querySelector('.flex').childElementCount;
+                    filesText.innerHTML = `<i class="fas fa-paperclip mr-1"></i> 已上传 ${fileCount} 个文件`;
+                    
+                    userMessageContent.appendChild(filesText);
+                }
+                
+                if (messageText) {
+                    const textPara = document.createElement('p');
+                    textPara.textContent = messageText;
+                    userMessageContent.appendChild(textPara);
+                }
+                
+                userMessage.appendChild(userMessageContent);
+                conversation.appendChild(userMessage);
+                
+                // 隐藏文件上传区域
+                uploadedFiles.classList.add('hidden');
+                
+                // 显示机器人正在输入状态
+                showBotTyping();
+                
+                // 滚动到底部
+                conversation.scrollTop = conversation.scrollHeight;
+                
+                // 模拟解析过程
+                setTimeout(() => {
+                    removeBotTyping();
+                    showFileAnalysisCard();
+                }, 2000);
+            }
+            
+            // 显示机器人正在输入状态
+            function showBotTyping() {
+                const typingIndicator = document.createElement('div');
+                typingIndicator.className = 'flex mb-4 bot-typing';
+                typingIndicator.innerHTML = `
+                    <div class="bg-gray-200 dark:bg-gray-700 p-3 rounded-lg flex items-center">
+                        <div class="flex space-x-1">
+                            <div class="loading-dot w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full"></div>
+                            <div class="loading-dot w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full"></div>
+                            <div class="loading-dot w-2 h-2 bg-gray-500 dark:bg-gray-400 rounded-full"></div>
+                        </div>
+                    </div>
+                `;
+                conversation.appendChild(typingIndicator);
+                conversation.scrollTop = conversation.scrollHeight;
+            }
+            
+            // 移除机器人正在输入状态
+            function removeBotTyping() {
+                const typingIndicator = document.querySelector('.bot-typing');
+                if (typingIndicator) {
+                    typingIndicator.remove();
+                }
+            }
+            
+            // 显示文件解析卡片
+            function showFileAnalysisCard() {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'flex mb-4';
+                
+                const botMessageContent = document.createElement('div');
+                botMessageContent.className = 'bg-blue-50 dark:bg-gray-700 p-4 rounded-lg max-w-[90%] shadow';
+                
+                // 卡片标题
+                const cardTitle = document.createElement('div');
+                cardTitle.className = 'flex items-center mb-3';
+                cardTitle.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-government-blue flex items-center justify-center text-xs text-white mr-2">
+                        <i class="fas fa-robot"></i>
+                    </div>
+                    <h3 class="font-medium text-government-blue dark:text-blue-300">文件解析结果</h3>
+                `;
+                
+                // 卡片内容
+                const cardContent = document.createElement('div');
+                cardContent.innerHTML = `
+                    <div class="mb-3">
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">文件摘要</h4>
+                        <p class="text-sm text-gray-600 dark:text-gray-400">
+                            这是一份关于【某某单位关于XX项目执行情况的报告】的电报文件，由某某单位发出，需要分发至多个部门。
+                        </p>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">识别要素</h4>
+                        <div class="overflow-x-auto">
+                            <table class="w-full text-sm text-left border-collapse">
+                                <tbody>
+                                    <tr class="border-b dark:border-gray-600">
+                                        <td class="py-2 pr-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap w-1/4">文件类型</td>
+                                        <td class="py-2 text-gray-600 dark:text-gray-400">
+                                            <select class="p-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 w-full">
+                                                <option selected>明电</option>
+                                                <option>密电</option>
+                                                <option>传电</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b dark:border-gray-600">
+                                        <td class="py-2 pr-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">紧急程度</td>
+                                        <td class="py-2 text-gray-600 dark:text-gray-400">
+                                            <select class="p-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 w-full">
+                                                <option>平急</option>
+                                                <option selected>加急</option>
+                                                <option>特急</option>
+                                                <option>特提</option>
+                                            </select>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b dark:border-gray-600">
+                                        <td class="py-2 pr-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">发文机关</td>
+                                        <td class="py-2 text-gray-600 dark:text-gray-400">
+                                            <input type="text" class="p-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 w-full" value="某某单位">
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b dark:border-gray-600">
+                                        <td class="py-2 pr-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">文号</td>
+                                        <td class="py-2 text-gray-600 dark:text-gray-400">
+                                            <input type="text" class="p-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 w-full" value="某发〔2023〕123号">
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b dark:border-gray-600">
+                                        <td class="py-2 pr-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">主送单位</td>
+                                        <td class="py-2 text-gray-600 dark:text-gray-400">
+                                            <textarea class="p-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 w-full">某某省人民政府办公厅，某某部</textarea>
+                                        </td>
+                                    </tr>
+                                    <tr class="border-b dark:border-gray-600">
+                                        <td class="py-2 pr-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">抄送单位</td>
+                                        <td class="py-2 text-gray-600 dark:text-gray-400">
+                                            <textarea class="p-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 w-full">某某办公室，某某委员会</textarea>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td class="py-2 pr-2 font-medium text-gray-700 dark:text-gray-300 whitespace-nowrap">页数</td>
+                                        <td class="py-2 text-gray-600 dark:text-gray-400">
+                                            <input type="number" class="p-1 text-sm border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-800 w-24" value="5">
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">附件文件</h4>
+                        <div class="p-2 bg-gray-100 dark:bg-gray-600 rounded">
+                            <div class="flex justify-between items-center">
+                                <div class="flex items-center">
+                                    <i class="fas fa-file-alt text-blue-500 mr-2"></i>
+                                    <span class="text-sm">某某单位关于XX项目执行情况的报告.docx</span>
+                                </div>
+                                <button class="text-primary dark:text-blue-300 text-sm hover:underline preview-file-btn">
+                                    预览
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-3 mt-4">
+                        <button class="bg-gray-200 hover:bg-gray-300 dark:bg-gray-600 dark:hover:bg-gray-500 text-gray-800 dark:text-gray-200 font-medium py-2 px-4 rounded-lg focus:outline-none transition-colors duration-200 flex items-center">
+                            <i class="fas fa-qrcode mr-2"></i> 生成二维码
+                        </button>
+                        <button class="bg-government-blue hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg focus:outline-none transition-colors duration-200 flex items-center" id="processBtnAnalysis">
+                            <i class="fas fa-check-circle mr-2"></i> 确认并继续
+                        </button>
+                    </div>
+                `;
+                
+                botMessageContent.appendChild(cardTitle);
+                botMessageContent.appendChild(cardContent);
+                botMessage.appendChild(botMessageContent);
+                conversation.appendChild(botMessage);
+                
+                // 绑定预览文件按钮事件
+                const previewFileBtn = botMessageContent.querySelector('.preview-file-btn');
+                previewFileBtn.addEventListener('click', function() {
+                    // 显示预览面板
+                    previewPanel.classList.remove('hidden');
+                    
+                    // 显示文件预览内容
+                    previewContent.innerHTML = `
+                        <div class="p-5 border border-gray-200 dark:border-gray-700 rounded">
+                            <h3 class="font-bold text-lg text-center mb-4">某某单位关于XX项目执行情况的报告</h3>
+                            <p class="mb-3">关于XX项目的进展情况，我单位现报告如下：</p>
+                            <p class="mb-3">一、项目背景</p>
+                            <p class="mb-3">为贯彻落实中央关于XX工作的决策部署，我单位于2023年6月启动了XX项目...</p>
+                            <p class="mb-3">二、工作进展</p>
+                            <p class="mb-3">截至2023年10月，XX项目已完成以下工作：</p>
+                            <p class="mb-3">1. 已完成前期调研和需求分析；</p>
+                            <p class="mb-3">2. 已形成初步实施方案；</p>
+                            <p class="mb-3">3. 已组建专项工作小组，明确分工...</p>
+                            <p class="mb-3">三、存在问题</p>
+                            <p class="mb-3">目前项目实施过程中主要存在以下几个问题：</p>
+                            <p class="mb-3">1. 部分地区反馈意见不及时；</p>
+                            <p class="mb-3">2. 资金保障机制有待完善...</p>
+                            <p class="mb-3">四、下一步工作计划</p>
+                            <p class="mb-3">1. 加强与相关单位的沟通协调；</p>
+                            <p class="mb-3">2. 完善工作推进机制...</p>
+                            <p class="mt-5 text-right">某某单位</p>
+                            <p class="text-right">2023年10月25日</p>
+                        </div>
+                    `;
+                });
+                
+                // 绑定"确认并继续"按钮事件
+                const processBtn = botMessageContent.querySelector('#processBtnAnalysis');
+                processBtn.addEventListener('click', function() {
+                    showBusinessRecommendations();
+                });
+                
+                // 滚动到底部
+                conversation.scrollTop = conversation.scrollHeight;
+            }
+            
+            // 显示业务推荐
+            function showBusinessRecommendations() {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'flex mb-4';
+                
+                const botMessageContent = document.createElement('div');
+                botMessageContent.className = 'bg-blue-50 dark:bg-gray-700 p-4 rounded-lg max-w-[90%] shadow';
+                
+                // 卡片标题
+                const cardTitle = document.createElement('div');
+                cardTitle.className = 'flex items-center mb-3';
+                cardTitle.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-government-blue flex items-center justify-center text-xs text-white mr-2">
+                        <i class="fas fa-lightbulb"></i>
+                    </div>
+                    <h3 class="font-medium text-government-blue dark:text-blue-300">业务推荐</h3>
+                `;
+                
+                // 卡片内容
+                const cardContent = document.createElement('div');
+                cardContent.innerHTML = `
+                    <div class="mb-3">
+                        <div class="p-2 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 rounded mb-3">
+                            <p class="text-sm text-green-700 dark:text-green-300">
+                                <i class="fas fa-check-circle mr-1"></i> 自检完成，未发现文件要素遗漏或异常
+                            </p>
+                        </div>
+                        
+                        <div class="p-3 border border-government-blue border-opacity-30 dark:border-opacity-50 rounded-lg bg-blue-50 dark:bg-blue-900 dark:bg-opacity-10 mb-4">
+                            <h4 class="text-sm font-medium text-government-blue dark:text-blue-300 mb-2">
+                                <i class="fas fa-star mr-1"></i> 类型识别与推荐
+                            </h4>
+                            <p class="text-sm text-gray-700 dark:text-gray-300 mb-2">
+                                本次识别正文为 <span class="font-medium">明文-发件</span>，推荐您进行 <span class="font-medium">发电办理</span>。
+                            </p>
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                <button class="selected-operation bg-government-blue text-white text-sm py-1 px-3 rounded-full focus:outline-none">
+                                    发电办理
+                                </button>
+                                <button class="text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 text-sm py-1 px-3 rounded-full focus:outline-none hover:bg-gray-300 dark:hover:bg-gray-500">
+                                    收电办理
+                                </button>
+                                <button class="text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 text-sm py-1 px-3 rounded-full focus:outline-none hover:bg-gray-300 dark:hover:bg-gray-500">
+                                    发文办理
+                                </button>
+                                <button class="text-gray-600 dark:text-gray-400 bg-gray-200 dark:bg-gray-600 text-sm py-1 px-3 rounded-full focus:outline-none hover:bg-gray-300 dark:hover:bg-gray-500">
+                                    收文办理
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">报头推荐</h4>
+                            <div class="p-3 bg-gray-100 dark:bg-gray-600 rounded text-sm">
+                                <p class="text-red-600 dark:text-red-400 font-medium">加急</p>
+                                <p class="mb-2">某某单位</p>
+                                <p>某发〔2023〕123号</p>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">主送单位排序建议</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 dark:bg-gray-600">
+                                            <th class="px-3 py-2">序号</th>
+                                            <th class="px-3 py-2">单位名称</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b dark:border-gray-600">
+                                            <td class="px-3 py-2">1</td>
+                                            <td class="px-3 py-2">某某省人民政府办公厅</td>
+                                        </tr>
+                                        <tr class="border-b dark:border-gray-600">
+                                            <td class="px-3 py-2">2</td>
+                                            <td class="px-3 py-2">某某部</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-4">
+                            <h4 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">抄送单位排序建议</h4>
+                            <div class="overflow-x-auto">
+                                <table class="w-full text-sm text-left border-collapse">
+                                    <thead>
+                                        <tr class="bg-gray-100 dark:bg-gray-600">
+                                            <th class="px-3 py-2">序号</th>
+                                            <th class="px-3 py-2">单位名称</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr class="border-b dark:border-gray-600">
+                                            <td class="px-3 py-2">1</td>
+                                            <td class="px-3 py-2">某某办公室</td>
+                                        </tr>
+                                        <tr class="border-b dark:border-gray-600">
+                                            <td class="px-3 py-2">2</td>
+                                            <td class="px-3 py-2">某某委员会</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex flex-wrap gap-3 mt-4">
+                        <button class="bg-government-blue hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg focus:outline-none transition-colors duration-200 flex items-center" id="processBtnRecommendation">
+                            <i class="fas fa-paper-plane mr-2"></i> 转发电登记系统
+                        </button>
+                    </div>
+                `;
+                
+                botMessageContent.appendChild(cardTitle);
+                botMessageContent.appendChild(cardContent);
+                botMessage.appendChild(botMessageContent);
+                conversation.appendChild(botMessage);
+                
+                // 绑定"转发电登记系统"按钮事件
+                const processBtn = botMessageContent.querySelector('#processBtnRecommendation');
+                processBtn.addEventListener('click', function() {
+                    showSystemPush();
+                });
+                
+                // 滚动到底部
+                conversation.scrollTop = conversation.scrollHeight;
+            }
+            
+            // 显示系统推送
+            function showSystemPush() {
+                const botMessage = document.createElement('div');
+                botMessage.className = 'flex mb-4';
+                
+                const botMessageContent = document.createElement('div');
+                botMessageContent.className = 'bg-blue-50 dark:bg-gray-700 p-4 rounded-lg max-w-[90%] shadow';
+                
+                // 卡片标题
+                const cardTitle = document.createElement('div');
+                cardTitle.className = 'flex items-center mb-3';
+                cardTitle.innerHTML = `
+                    <div class="w-6 h-6 rounded-full bg-government-blue flex items-center justify-center text-xs text-white mr-2">
+                        <i class="fas fa-exchange-alt"></i>
+                    </div>
+                    <h3 class="font-medium text-government-blue dark:text-blue-300">信息推送</h3>
+                `;
+                
+                // 卡片内容
+                const cardContent = document.createElement('div');
+                cardContent.innerHTML = `
+                    <div class="mb-3">
+                        <div class="flex items-center mb-3">
+                            <div class="w-10 h-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center text-green-600 dark:text-green-300 mr-3">
+                                <i class="fas fa-check-circle text-xl"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-medium text-gray-800 dark:text-gray-200">推送成功</h4>
+                                <p class="text-sm text-gray-600 dark:text-gray-400">文件已成功推送至发电登记系统</p>
+                            </div>
+                        </div>
+                        
+                        <div class="p-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800">
+                            <h4 class="text-sm font-medium text-government-blue dark:text-blue-300 mb-2">推送详情</h4>
+                            <ul class="space-y-2 text-sm">
+                                <li class="flex">
+                                    <span class="text-gray-600 dark:text-gray-400 w-24">目标系统：</span>
+                                    <span class="text-gray-800 dark:text-gray-200">发电登记系统</span>
+                                </li>
+                                <li class="flex">
+                                    <span class="text-gray-600 dark:text-gray-400 w-24">推送时间：</span>
+                                    <span class="text-gray-800 dark:text-gray-200">${new Date().toLocaleString()}</span>
+                                </li>
+                                <li class="flex">
+                                    <span class="text-gray-600 dark:text-gray-400 w-24">推送内容：</span>
+                                    <span class="text-gray-800 dark:text-gray-200">文件要素信息 + 原文文件</span>
+                                </li>
+                                <li class="flex">
+                                    <span class="text-gray-600 dark:text-gray-400 w-24">文件标题：</span>
+                                    <span class="text-gray-800 dark:text-gray-200">某某单位关于XX项目执行情况的报告</span>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <div class="p-3 bg-green-50 dark:bg-green-900 dark:bg-opacity-20 rounded-lg">
+                        <p class="text-sm text-green-700 dark:text-green-300">
+                            <i class="fas fa-info-circle mr-1"></i> 发电登记系统已自动填充文件信息。请在系统中检查并确认信息无误后提交。
+                        </p>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-4">
+                        <button class="text-government-blue dark:text-blue-300 hover:underline text-sm focus:outline-none">
+                            <i class="fas fa-undo-alt mr-1"></i> 返回修改
+                        </button>
+                        <button class="bg-government-blue hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg focus:outline-none transition-colors duration-200">
+                            <i class="fas fa-external-link-alt mr-2"></i> 跳转至登记系统
+                        </button>
+                    </div>
+                `;
+                
+                botMessageContent.appendChild(cardTitle);
+                botMessageContent.appendChild(cardContent);
+                botMessage.appendChild(botMessageContent);
+                conversation.appendChild(botMessage);
+                
+                // 滚动到底部
+                conversation.scrollTop = conversation.scrollHeight;
+                
+                // 添加新的助手提示消息
+                setTimeout(() => {
+                    const assistantHint = document.createElement('div');
+                    assistantHint.className = 'flex mb-4';
+                    
+                    const assistantHintContent = document.createElement('div');
+                    assistantHintContent.className = 'bg-gray-100 dark:bg-gray-700 p-3 rounded-lg max-w-[90%]';
+                    assistantHintContent.innerHTML = `
+                        <p class="text-sm text-gray-700 dark:text-gray-300">
+                            您还可以上传新的电报文件继续处理，或者使用"扫描文件"功能直接扫描纸质电报。如需帮助，请随时向我提问。
+                        </p>
+                    `;
+                    
+                    assistantHint.appendChild(assistantHintContent);
+                    conversation.appendChild(assistantHint);
+                    
+                    // 滚动到底部
+                    conversation.scrollTop = conversation.scrollHeight;
+                }, 1000);
+            }
+        });
+    </script>
+
+
+</body></html>

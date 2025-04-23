@@ -1,6 +1,7 @@
 import React from "react";
 import { Badge, Descriptions } from "antd";
 import type { DescriptionsProps } from "antd";
+import { Input, Select } from "antd";
 import "./index.css";
 
 const items: DescriptionsProps["items"] = [
@@ -60,8 +61,28 @@ const items: DescriptionsProps["items"] = [
   },
 ];
 
-const App: React.FC = (props: any) => (
-  <Descriptions bordered size="small" items={props.content} />
-);
+const App: React.FC = (props: any) => {
+  const { content, handleChange } = props;
+  let _content = content.map((item: any) => {
+    if (item.type === "text") {
+      item.children = (<Input value={item.val} onChange={(e) => handleChange(item.key, e.target.value)} />)
+    }
+    // if (item.type === "select") {
+    //   item.children = (<Select
+    //     value={item.val}
+    //     style={{ width: 120 }}
+    //     onChange={setFormData}
+    //     options={[
+    //       { value: 'jack', label: 'Jack' },
+    //       { value: 'lucy', label: 'Lucy' },
+    //       { value: 'Yiminghe', label: 'yiminghe' },
+    //       { value: 'disabled', label: 'Disabled', disabled: true },
+    //     ]}
+    //   />)
+    // }
+    return { ...item };
+  });
+  return (<Descriptions bordered size="small" items={_content} />)
+};
 
 export default App;

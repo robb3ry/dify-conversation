@@ -16,14 +16,18 @@ const nextConfig = {
     // https://nextjs.org/docs/api-reference/next.config.js/ignoring-typescript-errors
     ignoreBuildErrors: true,
   },
-  // async rewrites() {
-  //   return [
-  //     {
-  //       source: '/files/:path*',
-  //       destination: `${process.env.NEXT_PUBLIC_FILES_URL}/:path*`,
-  //     },
-  //   ]
-  // },
+  async rewrites() {
+    return [
+      // {
+      //   source: '/files/:path*',
+      //   destination: `${process.env.NEXT_PUBLIC_FILES_URL}/:path*`,
+      // },
+      {
+        source: '/send-tel-robot',
+        destination: '/send-tel-robot.html',
+      },
+    ]
+  },
 }
 
 module.exports = nextConfig

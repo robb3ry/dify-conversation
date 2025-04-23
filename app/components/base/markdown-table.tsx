@@ -1,8 +1,9 @@
 import 'katex/dist/katex.min.css'
-import { Component } from 'react'
+import { Component, useEffect, useRef, useState } from 'react'
 import BaseTable from '@/app/components/base/table'
 import Descriptions from '@/app/components/base/description'
 import cn from '@/utils/classnames'
+
 
 // interface UserData {
 //   key: string;
@@ -10,9 +11,9 @@ import cn from '@/utils/classnames'
 //   age: number;
 //   address: string;
 // }
-const Table = (props: {content: { columns: any; dataSource: any }}) => {
+const Table = (props: { content: { columns: any; dataSource: any } }) => {
   // 定义列配置
-  const {columns, dataSource} = props.content;
+  const { columns, dataSource } = props.content;
   // const columns = [
   //   {
   //     title: '姓名',
@@ -46,21 +47,21 @@ const Table = (props: {content: { columns: any; dataSource: any }}) => {
   //     address: '北京市',
   //   },
   // ];
-  return <BaseTable dataSource={dataSource} columns={columns}/>
+  return <BaseTable dataSource={dataSource} columns={columns} />
 }
 
 const formatJSONData = (content: string | string[]) => {
-  if(typeof content !== 'string'){
-    return {columns: [], dataSource: []};
+  if (typeof content !== 'string') {
+    return { columns: [], dataSource: [] };
   }
-  if(content === '' || content.includes('"__is_success":0')){
-    return {columns: [], dataSource: []};
+  if (content === '' || content.includes('"__is_success":0')) {
+    return { columns: [], dataSource: [] };
   }
   const parseContent = JSON.parse(content);
-  if(!Array.isArray(parseContent)) return {columns: [], dataSource: []};
+  if (!Array.isArray(parseContent)) return { columns: [], dataSource: [] };
   const columns: { title: any; dataIndex: any; key: any }[] = [], dataSource: { [x: number]: any; key: any }[] = [];
-  const values:any = {};
-  parseContent.forEach((item: { field_name: any; field_key: any;field_value:any }, key: any) => {
+  const values: any = {};
+  parseContent.forEach((item: { field_name: any; field_key: any; field_value: any }, key: any) => {
     columns.push({
       title: item.field_name,
       dataIndex: item.field_key,
@@ -72,30 +73,39 @@ const formatJSONData = (content: string | string[]) => {
     key: '1',
     ...values
   })
-  return {columns, dataSource};
+  return { columns, dataSource };
 }
 
 const formatJSONData2Des = (content: any) => {
-  if(typeof content !== 'string'){
+  if (typeof content !== 'string') {
     return [];
   }
-  if(content === '' || content.includes('"__is_success":0')){
+  if (content === '' || content.includes('"__is_success":0')) {
     return [];
   }
   const parseContent = JSON.parse(content);
-  if(!Array.isArray(parseContent)) return [];
+  if (!Array.isArray(parseContent)) return [];
   return parseContent.map((item, index) => ({
     key: index,
     label: item.field_name,
     children: item.field_value,
-    span:'filled'
+    val: item.field_value,
+    span: 'filled',
+    type: 'text'
   }))
 }
 export function MarkdownTable(props: { content: string; className?: string; customDisallowedElements?: string[] }) {
   const content = formatJSONData2Des(props.content);
+  const [formData, setFormData] = useState<any[]>(content);
+  const handleChange = (key: number, value: string) => {
+    setFormData(state => state.map((item, index) => key === index ? { ...item, val: value } : item));
+  }
+  useEffect(() => {
+    console.log("数组内容变化:", formData);
+  }, [formData]);
   return (
     <div className={cn('markdown-body', '!text-text-primary', props.className)}>
-      <Descriptions content={content}/>
+      <Descriptions content={formData} handleChange={handleChange} />
     </div>
   )
 }
